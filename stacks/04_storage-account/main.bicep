@@ -19,6 +19,16 @@ param customerWorkload string
 ])
 param environment string
 
+// ################################################################################
+// # Subnet Prefix Parameters to add to the Storage Account
+// ################################################################################
+
+@description('Optional: An Array of 1 or more IP Address Prefixes for the Virtual Network Subnets.')
+param subnetAddressPrefixes array
+
+@description('Optional: A count of the subnets based on the subnetAddressPrefixes array.')
+param subnetCount int = length(subnetAddressPrefixes)
+
 // ================ //
 //     Variables    //
 // ================ //
@@ -62,9 +72,24 @@ var tags = {
   WorkloadName: 'Connectivity'
 }
 
+// ################################################################################
+// # Subnet Resource ID's to add to the Storage Account
+// ################################################################################
+
+@description('Optional: An Array of 1 or more AC Subnet Resource Ids to add to allow Key Vault access.')
+var subnetResourceIds = [
+  for i in range(0, subnetCount): {
+    id: resourceId(subscription().subscriptionId, networkResourceGroup.name, 'Microsoft.Network/virtualNetworks/subnets', 'vnet-${customerPrefix}-${customerWorkload}-${environment}','snet${i+1}-vnet-${customerPrefix}-${customerWorkload}-${environment}')
+  }
+]
+
 // ================ //
 //   Dependencies   //
 // ================ //
+
+resource networkResourceGroup 'Microsoft.Resources/resourceGroups@2024-03-01' existing = {
+  name: 'rg-${customerPrefix}-${customerWorkload}-${environment}-net'
+}
 
 // ================ //
 //       Main       //
@@ -97,11 +122,12 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.19.0' = {
     accessTier: 'Hot'
     allowBlobPublicAccess: false
     allowSharedKeyAccess: false
-    requireInfrastructureEncryption: false
+    requireInfrastructureEncryption: true
     minimumTlsVersion: 'TLS1_2'
     networkAcls: {
       bypass: 'AzureServices'
       defaultAction: 'Deny'
+      virtualNetworkRules: subnetResourceIds
     }
     supportsHttpsTrafficOnly: true
   }

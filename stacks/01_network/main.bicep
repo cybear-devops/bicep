@@ -270,6 +270,7 @@ module virtualNetwork 'br/public:avm/res/network/virtual-network:0.6.1' = {
         name: 'snet${i+1}-vnet-${customerPrefix}-${customerWorkload}-${environment}'
         addressPrefixes: [subnetAddressPrefixes[i]]
         networkSecurityGroupResourceId: networkSecurityGroup[i].outputs.resourceId
+        serviceEndpoints: ['Microsoft.Storage', 'Microsoft.KeyVault']
       }
     ]
   }
